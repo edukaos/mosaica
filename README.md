@@ -29,3 +29,7 @@ Generador de paletas aleatorias de 6, 8, 10 o 12 tonos. Cada paleta recolorea la
 ## Estilos
 
 El estilo Artesanal agrega teselas irregulares, anillos ondulados en espejos y mandalas, pétalos en flores y detalles de alas y ojos en búhos. El estilo Clásico conserva las geometrías regulares originales.
+
+## Interfaz compacta
+
+En escritorio, el editor usa el alto disponible de la ventana: miniaturas a la izquierda, diseño adaptable en el centro, pestañas de Paletas / Personalizado / Juntas a la derecha y una barra de acciones siempre visible. Los paneles permiten desplazamiento interno en alturas reducidas. En tablet y móvil se habilita el desplazamiento de la página.
