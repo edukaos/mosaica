@@ -33,3 +33,12 @@ El estilo Artesanal agrega teselas irregulares, anillos ondulados en espejos y m
 ## Interfaz compacta
 
 En escritorio, el editor usa el alto disponible de la ventana: miniaturas a la izquierda, diseño adaptable en el centro, pestañas de Paletas / Personalizado / Juntas a la derecha y una barra de acciones siempre visible. Los paneles permiten desplazamiento interno en alturas reducidas. En tablet y móvil se habilita el desplazamiento de la página.
+
+## Herramientas de pintura
+
+- **Pincel:** tocá o arrastrá con mouse, lápiz o dedo sobre las teselas. Un trazo completo cuenta como una operación de Deshacer.
+- **Cuentagotas:** toma el color de una tesela y vuelve automáticamente al pincel.
+- **Reemplazar:** elegí el color nuevo y tocá una tesela del color que querés sustituir; cambia todas las teselas de ese color en el diseño abierto, sin modificar las demás formas.
+- **Rehacer:** restaura el último cambio deshecho. Una edición nueva descarta la rama de rehacer. Atajos: Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z o Ctrl/Cmd+Y. Los atajos no interfieren con campos de texto.
+
+El historial de Deshacer/Rehacer dura mientras está abierta la sesión y se reinicia al abrir otro proyecto; el resultado del dibujo sí se guarda automáticamente.

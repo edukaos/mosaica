@@ -16,13 +16,13 @@ const shapes=[
 {id:'pez',name:'Pez',icon:'◁',group:'Naturaleza',d:'M440 300L563 170V430L440 320Q255 570 40 300Q255 30 440 280Z'},
 {id:'casa',name:'Casita',icon:'⌂',group:'Hogar',d:'M40 275L300 40L560 275H500V555H100V275Z'}
 ];
-const ns='http://www.w3.org/2000/svg',el=id=>document.getElementById(id);let palette=0,selected=2,shape='espejo',pattern='petalos',grout='#e6dcc9',letter='A',number='8',models={},history=[],group='Todas',activeColors=[...palettes[0].colors],customColors=[],paletteName='Tierra',geometryStyle='artesanal';
+const ns='http://www.w3.org/2000/svg',el=id=>document.getElementById(id);let palette=0,selected=2,shape='espejo',pattern='petalos',grout='#e6dcc9',letter='A',number='8',models={},history=[],future=[],paintTool='brush',stroke=null,group='Todas',activeColors=[...palettes[0].colors],customColors=[],paletteName='Tierra',geometryStyle='artesanal';
 const polar=(r,a)=>[300+r*Math.cos(a),300+r*Math.sin(a)],polygon=p=>'M'+p.map(v=>v.join(',')).join('L')+'Z';
 shapes.find(s=>s.star).d=polygon(Array.from({length:10},(_,i)=>polar(i%2?125:275,-Math.PI/2+i*Math.PI/5)));
 shapes.find(s=>s.flower).d=polygon(Array.from({length:180},(_,i)=>{let a=i*Math.PI/90;return polar(220+48*Math.cos(a*8),a)}));
 function spec(){return shapes.find(s=>s.id===shape)}
 function key(){return shape+'-'+geometryStyle+'-'+pattern+'-'+(shape==='letra'?letter:shape==='numero'?number:'')}
-function snapshot(){history.push(JSON.stringify({palette,selected,shape,pattern,grout,letter,number,models,activeColors,customColors,paletteName,geometryStyle}));if(history.length>35)history.shift()}
+function snapshot(){future=[];el('redo').disabled=true;history.push(JSON.stringify({palette,selected,shape,pattern,grout,letter,number,models,activeColors,customColors,paletteName,geometryStyle}));if(history.length>35)history.shift()}
 function say(t){el('status').textContent=t}
 function sector(r1,r2,a,b){let p=polar(r1,a),q=polar(r2,a),r=polar(r2,b),s=polar(r1,b);return 'M'+p+'L'+q+'A'+r2+','+r2+' 0 0 1 '+r+'L'+s+'A'+r1+','+r1+' 0 0 0 '+p+'Z'}
 function glyph(){return shape==='letra'?letter:number}
@@ -38,9 +38,9 @@ else {const step=29;let pts=[];for(let row=0;row<22;row++){pts[row]=[];for(let c
 for(let row=0;row<21;row++)for(let col=0;col<21;col++){let p=[pts[row][col],pts[row][col+1],pts[row+1][col+1],pts[row+1][col]],x=p.reduce((a,v)=>a+v[0],0)/4,y=p.reduce((a,v)=>a+v[1],0)/4;if(!inside(x,y)&&!p.some(v=>inside(...v)))continue;let s=slot(x,y,row,col);tiles.push({d:polygon(p),slot:s,color:activeColors[s]})}}
 return tiles}
 function shapeButtons(){el('shapeGrid').replaceChildren();shapes.filter(s=>group==='Todas'||s.group===group).forEach(s=>{let b=document.createElement('button');b.className='shape-button'+(shape===s.id?' active':'');b.setAttribute('aria-pressed',shape===s.id);b.innerHTML=(s.d?'<svg viewBox="0 0 600 600" aria-hidden="true"><path d="'+s.d+'" fill-rule="evenodd"/></svg>':'<span>'+s.icon+'</span>')+'<small>'+s.name+'</small>';b.onclick=()=>{if(shape===s.id)return;snapshot();shape=s.id;render();say(s.name+' listo para pintar.')};el('shapeGrid').append(b)})}
-function render(){let s=spec(),k=key();if(!models[k])models[k]=make();shapeButtons();el('shapeClip').replaceChildren(maskNode());el('shapeBase').replaceChildren(maskNode());el('shapeBase').setAttribute('fill',grout);el('tiles').replaceChildren();models[k].forEach((t,i)=>{let p=document.createElementNS(ns,'path');p.setAttribute('d',t.d);p.setAttribute('fill',t.color);p.setAttribute('stroke',grout);p.setAttribute('stroke-width','3');p.setAttribute('stroke-linejoin','round');p.setAttribute('class','tile');p.setAttribute('role','button');p.setAttribute('tabindex','0');p.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();p.onclick()}};p.setAttribute('aria-label','Pintar pieza '+(i+1));p.onclick=()=>{let color=availableColors()[selected];if(t.color===color)return;snapshot();t.color=color;p.setAttribute('fill',color);el('undo').disabled=false;queueSave();say('Pieza pintada. Seguí creando.')};el('tiles').append(p)});
+function render(){finishStroke();let s=spec(),k=key();if(!models[k])models[k]=make();shapeButtons();el('shapeClip').replaceChildren(maskNode());el('shapeBase').replaceChildren(maskNode());el('shapeBase').setAttribute('fill',grout);el('tiles').replaceChildren();models[k].forEach((t,i)=>{let p=document.createElementNS(ns,'path');p.setAttribute('d',t.d);p.setAttribute('fill',t.color);p.setAttribute('stroke',grout);p.setAttribute('stroke-width','3');p.setAttribute('stroke-linejoin','round');p.setAttribute('class','tile');p.setAttribute('role','button');p.setAttribute('tabindex','0');p.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();useTile(i)}};p.setAttribute('aria-label','Pintar pieza '+(i+1));p.setAttribute('data-tile-index',i);p.onclick=e=>{if(e.detail===0)useTile(i)};el('tiles').append(p)});
 el('details').innerHTML=s.hole==='round'?'<circle cx="300" cy="300" r="168" fill="url(#mirror)" stroke="#b4a38a" stroke-width="2"/><path d="M210 198Q240 170 278 174L360 423Q325 440 295 437Z" fill="white" opacity=".17"/>':s.hole?'<rect x="'+(s.hole==='portrait'?174:133)+'" y="'+(s.hole==='portrait'?111:163)+'" width="'+(s.hole==='portrait'?252:334)+'" height="'+(s.hole==='portrait'?378:274)+'" fill="#fbf8f0"/><path d="M255 340L300 285L345 340Z" fill="#e0ded0"/><circle cx="320" cy="265" r="14" fill="#dbcfb8"/><text x="300" y="375" text-anchor="middle" fill="#8c8879" font-family="Arial" font-size="13">Tu foto acá</text>':shape==='buho'?'<circle cx="212" cy="237" r="27" fill="#34372d"/><circle cx="388" cy="237" r="27" fill="#34372d"/><circle cx="220" cy="228" r="8" fill="#faf4df"/><circle cx="396" cy="228" r="8" fill="#faf4df"/>':shape==='pez'?'<circle cx="135" cy="275" r="17" fill="#34372d"/><circle cx="140" cy="270" r="5" fill="white"/>':'';
-el('caption').textContent=s.name+(s.text?' · '+glyph():'');el('pieceCount').textContent=models[k].length+' piezas · diseño orientativo';el('stageLabel').textContent=s.name+' · Vista previa';el('textControls').hidden=!s.text;el('letterControl').hidden=shape!=='letra';el('numberControl').hidden=shape!=='numero';el('letter').value=letter;el('number').value=number;el('patternSelect').value=pattern;el('undo').disabled=!history.length;el('geometryStyle').value=geometryStyle;swatches();queueSave()}
+el('caption').textContent=s.name+(s.text?' · '+glyph():'');el('pieceCount').textContent=models[k].length+' piezas · diseño orientativo';el('stageLabel').textContent=s.name+' · Vista previa';el('textControls').hidden=!s.text;el('letterControl').hidden=shape!=='letra';el('numberControl').hidden=shape!=='numero';el('letter').value=letter;el('number').value=number;el('patternSelect').value=pattern;updateHistoryButtons();el('geometryStyle').value=geometryStyle;swatches();queueSave()}
 function swatches(){el('activePaletteName').textContent=paletteName;el('colors').replaceChildren();availableColors().forEach((c,i)=>{let b=document.createElement('button');b.className='swatch'+(i===selected?' active':'');b.style.background=c;b.setAttribute('aria-label','Color '+(i+1)+' '+c);b.setAttribute('aria-pressed',i===selected);b.onclick=()=>{selected=i;swatches();queueSave()};el('colors').append(b)});el('colorLabel').textContent='Color seleccionado · '+availableColors()[selected].toUpperCase();el('grouts').replaceChildren();['#e6dcc9','#c2ae90','#55564f'].forEach((c,i)=>{let b=document.createElement('button');b.className='swatch'+(c===grout?' active':'');b.style.background=c;b.setAttribute('aria-label','Juntas '+['crema','arena','grafito'][i]);b.setAttribute('aria-pressed',c===grout);b.onclick=()=>{if(grout!==c){snapshot();grout=c;render()}};el('grouts').append(b)})}
 palettes.forEach((p,j)=>{let b=document.createElement('button');b.className='pal';b.innerHTML=p.colors.slice(0,5).map(c=>'<i style="background:'+c+'"></i>').join('')+'<span>'+p.name+'</span>';b.onclick=()=>{snapshot();palette=j;activeColors=[...p.colors];paletteName=p.name;selected=0;models[key()]=make();render();say('Paleta '+p.name+' aplicada a esta pieza.')};el('palettes').append(b)});
 el('category').onchange=e=>{group=e.target.value;shapeButtons()};
@@ -49,7 +49,6 @@ for(let c of 'ABCDEFGHIJKLMNÑOPQRSTUVWXYZ'){let o=document.createElement('optio
 el('letter').onchange=e=>{snapshot();letter=e.target.value;render()};
 el('number').oninput=e=>{e.target.value=e.target.value.replace(/[^0-9]/g,'').slice(0,2)};
 el('applyNumber').onclick=()=>{let v=el('number').value;if(!/^\d{1,2}$/.test(v)){say('Ingresá uno o dos dígitos.');return}if(v!==number){snapshot();number=v;shape='numero';render();say('Número '+v+' listo para pintar.')}};
-el('undo').onclick=()=>{if(!history.length)return;let s=JSON.parse(history.pop());({models,shape,pattern,palette,selected,grout,letter,number,activeColors,customColors,paletteName,geometryStyle}=s);render();say('Último cambio deshecho.')};
 el('reset').onclick=()=>{snapshot();models[key()]=make();render();say('Colores restablecidos en esta pieza.')};
 el('download').onclick=()=>{let svg=el('art').cloneNode(true);svg.setAttribute('width','1200');svg.setAttribute('height','1200');svg.querySelectorAll('.tile').forEach(p=>p.removeAttribute('role'));let blob=new Blob([new XMLSerializer().serializeToString(svg)],{type:'image/svg+xml'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='mosaica-'+shape+(spec().text?'-'+glyph():'')+'.svg';a.click();setTimeout(()=>URL.revokeObjectURL(u),1500);say('Diseño descargado en SVG.')};
 
@@ -123,7 +122,7 @@ function makeArtisan(){
 const STORAGE_KEY='mosaica.studio.v1';let projectName='Mi mosaico',saveTimer=null,storageReady=false,storageWarning=false;
 function projectState(){return {palette,selected,shape,pattern,grout,letter,number,models,activeColors,customColors,paletteName,geometryStyle}}
 function validState(s){return s&&shapes.some(x=>x.id===s.shape)&&['petalos','geometrico','ondas'].includes(s.pattern)&&['artesanal','clasico'].includes(s.geometryStyle)&&Array.isArray(s.activeColors)&&s.activeColors.length>=6&&s.activeColors.length<=12&&s.activeColors.every(c=>/^#[0-9a-f]{6}$/i.test(c))&&Array.isArray(s.customColors)&&s.customColors.length<1000&&s.customColors.every(c=>/^#[0-9a-f]{6}$/i.test(c))&&Number.isInteger(s.selected)&&s.selected>=0&&s.selected<s.activeColors.length+s.customColors.length&&/^#[0-9a-f]{6}$/i.test(s.grout)&&/^[A-ZÑ]$/.test(s.letter)&&/^\d{1,2}$/.test(s.number)&&typeof s.paletteName==='string'&&s.models&&typeof s.models==='object'&&Object.keys(s.models).length<200&&Object.values(s.models).every(ts=>Array.isArray(ts)&&ts.length<=1500&&ts.every(t=>typeof t.d==='string'&&t.d.length<6000&&/^#[0-9a-f]{6}$/i.test(t.color)&&Number.isInteger(t.slot)))}
-function setProjectState(s){if(!validState(s))throw Error('Proyecto inválido');({palette,selected,shape,pattern,grout,letter,number,models,activeColors,customColors,paletteName,geometryStyle}=s);history=[]}
+function setProjectState(s){if(!validState(s))throw Error('Proyecto inválido');({palette,selected,shape,pattern,grout,letter,number,models,activeColors,customColors,paletteName,geometryStyle}=s);history=[];future=[];stroke=null}
 function storageData(){let raw=localStorage.getItem(STORAGE_KEY);if(!raw)return {version:1,projects:[]};let d=JSON.parse(raw);if(d.version!==1||!Array.isArray(d.projects))throw Error('Formato no compatible');return d}
 function storageFailed(){storageWarning=true;el('saveState').textContent='No se pudo guardar en este navegador';say('El guardado local no está disponible o no tiene espacio. Descargá tu diseño para conservarlo.')}
 function saveDraft(){if(!storageReady)return;clearTimeout(saveTimer);try{let d=storageData();d.draft={name:projectName,state:projectState(),updated:Date.now()};localStorage.setItem(STORAGE_KEY,JSON.stringify(d));storageWarning=false;el('saveState').textContent='Guardado en este navegador'}catch{storageFailed()}}
@@ -142,3 +141,41 @@ restoreDraft();render();
 
 function activateColorTab(name,focus=false){for(let id of ['palettes','custom','grout']){let active=id===name;el('tab-'+id).setAttribute('aria-selected',String(active));el('tab-'+id).setAttribute('tabindex',active?'0':'-1');el('panel-'+id).hidden=!active;if(active&&focus)el('tab-'+id).focus()}}
 for(let [index,name] of ['palettes','custom','grout'].entries()){el('tab-'+name).onclick=()=>activateColorTab(name);el('tab-'+name).onkeydown=e=>{let names=['palettes','custom','grout'];if(['ArrowRight','ArrowLeft','Home','End'].includes(e.key)){e.preventDefault();let target=e.key==='Home'?0:e.key==='End'?2:(index+(e.key==='ArrowRight'?1:2))%3;activateColorTab(names[target],true)}}}
+
+
+function updateHistoryButtons(){el('undo').disabled=!history.length;el('redo').disabled=!future.length}
+function restoreHistoryState(state){({models,shape,pattern,palette,selected,grout,letter,number,activeColors,customColors,paletteName,geometryStyle}=state)}
+function undoEdit(){finishStroke();if(!history.length)return;future.push(JSON.stringify(projectState()));restoreHistoryState(JSON.parse(history.pop()));render();say('Último cambio deshecho.')}
+function redoEdit(){finishStroke();if(!future.length)return;history.push(JSON.stringify(projectState()));restoreHistoryState(JSON.parse(future.pop()));render();say('Cambio rehecho.')}
+function setPaintTool(tool){finishStroke();paintTool=tool;for(let name of ['brush','picker','replace'])el('tool-'+name).setAttribute('aria-pressed',String(name===tool));el('toolHint').textContent={brush:'Arrastrá sobre las piezas para pintar.',picker:'Tocá una pieza para tomar su color.',replace:'Elegí el color nuevo arriba y tocá el color que querés reemplazar en esta pieza.'}[tool];el('art').setAttribute('data-paint-tool',tool)}
+function paintTile(index,grouped=false){let tile=models[key()]?.[index],color=availableColors()[selected];if(!tile||tile.color.toLowerCase()===color.toLowerCase())return false;
+ if(grouped){if(!stroke||stroke.modelKey!==key())return false;if(!stroke.changed){snapshot();stroke.changed=true}}
+ else snapshot();
+ tile.color=color;el('tiles').children[index]?.setAttribute('fill',color);updateHistoryButtons();queueSave();return true;
+}
+function useTile(index){let tile=models[key()]?.[index];if(!tile)return;
+ if(paintTool==='picker'){let color=tile.color.toLowerCase(),pos=availableColors().findIndex(c=>c.toLowerCase()===color);if(pos<0){snapshot();customColors.push(color);pos=availableColors().length-1}selected=pos;swatches();updateHistoryButtons();queueSave();setPaintTool('brush');say('Color '+color.toUpperCase()+' seleccionado. Ya podés pintar.');return}
+ if(paintTool==='replace'){let old=tile.color.toLowerCase(),color=availableColors()[selected];if(old===color.toLowerCase()){say('Elegí un color nuevo diferente del que querés reemplazar.');return}
+ snapshot();let count=0;models[key()].forEach((t,i)=>{if(t.color.toLowerCase()===old){t.color=color;el('tiles').children[i]?.setAttribute('fill',color);count++}});updateHistoryButtons();queueSave();say('Reemplazamos el color en '+count+' piezas de este diseño.');return}
+ if(paintTile(index))say('Pieza pintada.');
+}
+function tileAt(x,y){let node=document.elementFromPoint(x,y)?.closest?.('[data-tile-index]');return node&&el('tiles').contains(node)?Number(node.getAttribute('data-tile-index')):null}
+function finishStroke(){if(!stroke)return;let ended=stroke;stroke=null;try{if(el('art').hasPointerCapture(ended.id))el('art').releasePointerCapture(ended.id)}catch{}if(ended.changed){updateHistoryButtons();queueSave();say('Trazo terminado. Deshacer revierte el trazo completo.')}}
+function beginStroke(e){if(e.isPrimary===false||e.button!==0||stroke)return;let index=tileAt(e.clientX,e.clientY);if(index===null)return;e.preventDefault();
+ if(paintTool!=='brush'){useTile(index);return}
+ stroke={id:e.pointerId,modelKey:key(),changed:false,x:e.clientX,y:e.clientY};try{el('art').setPointerCapture(e.pointerId)}catch{}paintTile(index,true);
+}
+function moveStroke(e){if(!stroke||stroke.id!==e.pointerId)return;if(e.pointerType==='mouse'&&e.buttons===0){finishStroke();return}e.preventDefault();
+ let x=stroke.x,y=stroke.y,dx=e.clientX-x,dy=e.clientY-y,steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/4));
+ for(let i=1;i<=steps;i++){let index=tileAt(x+dx*i/steps,y+dy*i/steps);if(index!==null)paintTile(index,true)}
+ if(stroke){stroke.x=e.clientX;stroke.y=e.clientY}
+}
+for(let tool of ['brush','picker','replace'])el('tool-'+tool).onclick=()=>setPaintTool(tool);
+el('art').addEventListener('pointerdown',beginStroke);
+el('art').addEventListener('pointermove',moveStroke);
+for(let type of ['pointerup','pointercancel','lostpointercapture'])el('art').addEventListener(type,e=>{if(stroke?.id===e.pointerId)finishStroke()});
+window.addEventListener('pointerup',e=>{if(stroke?.id===e.pointerId)finishStroke()});
+window.addEventListener('blur',finishStroke);
+el('undo').onclick=undoEdit;el('redo').onclick=redoEdit;
+document.addEventListener('keydown',e=>{if(e.target?.closest?.('input,textarea,select,[contenteditable="true"],dialog[open]'))return;if((e.ctrlKey||e.metaKey)&&!e.altKey){let k=e.key.toLowerCase();if(k==='z'){e.preventDefault();e.shiftKey?redoEdit():undoEdit()}else if(k==='y'){e.preventDefault();redoEdit()}}else if(e.key==='Escape')setPaintTool('brush')});
+setPaintTool('brush');updateHistoryButtons();
