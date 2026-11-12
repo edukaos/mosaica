@@ -21,3 +21,7 @@ Los cambios se conservan entre formas mientras la página permanece abierta; no 
 ## Demo
 
 https://mosaica-taller-demo.edukaos.chatgpt.site/
+
+## Colores
+
+Generador de paletas aleatorias de 6, 8, 10 o 12 tonos. Cada paleta recolorea la pieza actual y se puede deshacer. Los colores personalizados se agregan con el selector o un código HEX de 3 o 6 caracteres, y se conservan al cambiar de paleta durante la sesión.
