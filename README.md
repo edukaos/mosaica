@@ -42,3 +42,11 @@ En escritorio, el editor usa el alto disponible de la ventana: miniaturas a la i
 - **Rehacer:** restaura el último cambio deshecho. Una edición nueva descarta la rama de rehacer. Atajos: Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z o Ctrl/Cmd+Y. Los atajos no interfieren con campos de texto.
 
 El historial de Deshacer/Rehacer dura mientras está abierta la sesión y se reinicia al abrir otro proyecto; el resultado del dibujo sí se guarda automáticamente.
+
+## Zoom, movimiento y simetría
+
+- Zoom de 100% a 400% con + / − o rueda del mouse sobre el lienzo, centrado en el puntero.
+- **Mover** permite arrastrar la vista sin pintar; también se puede arrastrar con el botón central del mouse. **Ver completo** restaura la vista.
+- **Simetría** del pincel: sin simetría, espejo vertical, radial de 4 o de 8 sectores. Solo se pintan puntos dentro de la forma; las teselas irregulares se seleccionan por el punto reflejado. El cuentagotas y el reemplazo no se repiten por simetría.
+- Un trazo simétrico sigue siendo una sola operación de Deshacer/Rehacer.
+- Descargar SVG e imprimir conservan el diseño completo independientemente del zoom.
